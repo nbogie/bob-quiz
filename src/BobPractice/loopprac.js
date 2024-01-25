@@ -1,16 +1,20 @@
 const { prompt } = require("enquirer");
 
 async function mainLoop() {
-  const MAX_ROUND_NUMBER = 7;
   let counter = 1;
+  const MAX_ROUND_NUMBER = 7;
+
   let currentNumber = randomInt();
   while (counter <= MAX_ROUND_NUMBER) {
-    const result = await playOneIterationOfHigherLower(currentNumber);
-    if (result.outcome === "success") {
-      currentNumber = result.number;
-    } else {
+    const nextNumberOrNull = await playOneIterationOfHigherLower(
+      currentNumber,
+      counter
+    );
+    if (nextNumberOrNull === null) {
       //must have failed
       break;
+    } else {
+      currentNumber = nextNumberOrNull;
     }
     counter++;
   }
@@ -19,13 +23,12 @@ async function mainLoop() {
   }
 }
 
-mainLoop();
-
 /**
- *@param {number} currentNumner
- * @returns {Promise<{outcome: "success", number:number } | {outcome: "fail"} >}
+ *@param {number} currentNumber
+ *
+ * @returns {Promise<number|null>}
  */
-async function playOneIterationOfHigherLower(currentNumber) {
+async function playOneIterationOfHigherLower(currentNumber, roundNumber) {
   const nextNumber = randomInt(); // intend to compare then set current to next
 
   const userResultPrompt = await prompt({
@@ -34,6 +37,7 @@ async function playOneIterationOfHigherLower(currentNumber) {
     message: `The number is ${currentNumber}. Will the next number (1-13) be higher or lower? (CHEAT: ${nextNumber})`,
   });
 
+  //@ts-ignore
   const guess = userResultPrompt.userResponse.toLowerCase();
   if (
     (guess === "higher" && nextNumber > currentNumber) ||
@@ -41,23 +45,23 @@ async function playOneIterationOfHigherLower(currentNumber) {
   ) {
     console.log(
       `You said ${guess}. The next number is ${nextNumber}. Congratulations! You move on to round ${
-        counter + 1
+        roundNumber + 1
       }.`
     );
-    return { outcome: "success", number: nextNumber };
+    return nextNumber;
   } else if (nextNumber === currentNumber) {
     console.log(`Unlucky! The next number is also ${nextNumber}. You lose.`);
-    return { outcome: "fail" };
+    return null;
   } else {
     console.log(
       `You said ${guess}. This was wrong. The next number is ${nextNumber}. Go home.`
     );
-    return { outcome: "fail" };
+    return null;
   }
-
-  return userResultPrompt;
 }
 
 function randomInt() {
   return Math.floor(1 + Math.random() * 13);
 }
+
+mainLoop();
